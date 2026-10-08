@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>How Microchips Work</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a26;
+    --accent: #7c3aed;
+    --accent2: #06b6d4;
+    --accent3: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: #2a2a3a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; line-height:1.7; }
+
+  /* PROGRESS BAR */
+  #progress-bar { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--accent),var(--accent2)); width:0%; z-index:1000; transition:width .1s; }
+
+  /* NAV */
+  nav { position:fixed; top:3px; left:0; right:0; z-index:999; background:rgba(10,10,15,.85); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); padding:0 2rem; display:flex; align-items:center; justify-content:space-between; height:60px; }
+  .nav-logo { font-weight:800; font-size:1.1rem; background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .nav-links { display:flex; gap:1.5rem; list-style:none; }
+  .nav-links a { color:var(--muted); text-decoration:none; font-size:.85rem; font-weight:500; transition:color .2s; }
+  .nav-links a:hover { color:var(--text); }
+
+  /* HERO */
+  .hero { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:6rem 2rem 4rem; position:relative; overflow:hidden; }
+  .hero::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 80% 60% at 50% 40%, rgba(124,58,237,.18) 0%, transparent 70%); pointer-events:none; }
+  .chip-grid { position:absolute; inset:0; background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px); background-size:40px 40px; opacity:.4; }
+  .hero-badge { display:inline-flex; align-items:center; gap:.5rem; background:rgba(124,58,237,.15); border:1px solid rgba(124,58,237,.35); color:#a78bfa; padding:.35rem 1rem; border-radius:999px; font-size:.8rem; font-weight:600; margin-bottom:1.5rem; }
+  .hero h1 { font-size:clamp(2.5rem,6vw,5rem); font-weight:900; line-height:1.1; margin-bottom:1.5rem; }
+  .hero h1 span { background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .hero p { font-size:1.15rem; color:var(--muted); max-width:580px; margin:0 auto 2.5rem; }
+  .hero-btn { display:inline-flex; align-items:center; gap:.5rem; background:linear-gradient(135deg,var(--accent),#5b21b6); color:#fff; padding:.85rem 2rem; border-radius:12px; font-weight:700; font-size:1rem; text-decoration:none; transition:transform .2s,box-shadow .2s; box-shadow:0 0 30px rgba(124,58,237,.35); }
+  .hero-btn:hover { transform:translateY(-2px); box-shadow:0 0 50px rgba(124,58,237,.55); }
+  .hero-stats { display:flex; gap:3rem; margin-top:4rem; }
+  .stat { text-align:center; }
+  .stat-num { font-size:1.8rem; font-weight:900; background:linear-gradient(135deg,var(--accent2),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .stat-label { font-size:.8rem; color:var(--muted); font-weight:500; }
+
+  /* SECTIONS */
+  .section-wrapper { max-width:900px; margin:0 auto; padding:6rem 2rem; }
+  .section-label { font-size:.75rem; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:var(--accent2); margin-bottom:.75rem; }
+  .section-title { font-size:clamp(1.8rem,4vw,2.8rem); font-weight:900; margin-bottom:1rem; }
+  .section-sub { color:var(--muted); font-size:1.05rem; max-width:650px; margin-bottom:3rem; }
+
+  /* STEP CARDS */
+  .steps { display:flex; flex-direction:column; gap:0; }
+  .step { display:grid; grid-template-columns:60px 1fr; gap:0 2rem; position:relative; }
+  .step:not(:last-child) .step-line { position:absolute; left:29px; top:60px; bottom:-30px; width:2px; background:linear-gradient(var(--accent),var(--accent2)); }
+  .step-num-col { display:flex; flex-direction:column; align-items:center; padding-top:4px; }
+  .step-num { width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:1.1rem; border:2px solid; flex-shrink:0; position:relative; z-index:1; }
+  .step-content { padding-bottom:3.5rem; }
+  .step-content h3 { font-size:1.4rem; font-weight:800; margin-bottom:.75rem; margin-top:.5rem; }
+  .step-content p { color:var(--muted); margin-bottom:1rem; }
+  .highlight-box { background:var(--card); border-left:3px solid var(--accent); border-radius:0 10px 10px 0; padding:1rem 1.25rem; margin:1rem 0; font-size:.9rem; }
+  .highlight-box strong { color:var(--accent2); }
+  .tag-row { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:1rem; }
+  .tag { background:rgba(124,58,237,.15); border:1px solid rgba(124,58,237,.25); color:#c4b5fd; padding:.25rem .75rem; border-radius:999px; font-size:.8rem; font-weight:600; }
+  .tag.cyan { background:rgba(6,182,212,.12); border-color:rgba(6,182,212,.25); color:#67e8f9; }
+  .tag.amber { background:rgba(245,158,11,.12); border-color:rgba(245,158,11,.25); color:#fcd34d; }
+
+  /* VISUAL DIAGRAMS */
+  .diagram { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:1.5rem; margin:1.5rem 0; }
+  .diagram-title { font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:1rem; }
+  .transistor-viz { display:flex; align-items:center; justify-content:center; gap:1rem; padding:1rem; flex-wrap:wrap; }
+  .t-gate, .t-source, .t-drain { padding:.5rem 1rem; border-radius:8px; font-size:.85rem; font-weight:700; text-align:center; }
+  .t-source { background:rgba(6,182,212,.2); border:1px solid var(--accent2); color:var(--accent2); }
+  .t-gate { background:rgba(124,58,237,.2); border:1px solid var(--accent); color:#a78bfa; min-width:80px; }
+  .t-drain { background:rgba(245,158,11,.2); border:1px solid var(--accent3); color:var(--accent3); }
+  .arrow { color:var(--muted); font-size:1.2rem; }
+
+  .logic-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:1rem; }
+  .logic-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem; text-align:center; }
+  .logic-name { font-weight:800; font-size:1rem; margin-bottom:.4rem; }
+  .logic-desc { font-size:.78rem; color:var(--muted); }
+  .logic-truth { font-family:monospace; font-size:.8rem; color:var(--accent2); margin-top:.5rem; }
+
+  .process-steps { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:1rem; }
+  .p-step { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem; text-align:center; position:relative; }
+  .p-step-num { position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:var(--accent); color:#fff; width:22px; height:22px; border-radius:50%; font-size:.7rem; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .p-step-icon { font-size:1.8rem; margin-bottom:.5rem; }
+  .p-step-name { font-weight:700; font-size:.85rem; }
+  .p-step-desc { font-size:.75rem; color:var(--muted); margin-top:.3rem; }
+
+  .chip-types { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; }
+  .chip-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1.25rem; transition:border-color .2s,transform .2s; }
+  .chip-card:hover { border-color:var(--accent); transform:translateY(-3px); }
+  .chip-icon { font-size:2rem; margin-bottom:.6rem; }
+  .chip-name { font-weight:800; font-size:.95rem; margin-bottom:.3rem; }
+  .chip-desc { font-size:.78rem; color:var(--muted); }
+
+  /* KEY TAKEAWAY */
+  .takeaway { background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(6,182,212,.1)); border:1px solid rgba(124,58,237,.3); border-radius:14px; padding:1.25rem 1.5rem; margin-top:1.25rem; }
+  .takeaway-label { font-size:.72rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--accent2); margin-bottom:.4rem; }
+  .takeaway p { font-size:.92rem; color:var(--text); }
+
+  /* DIVIDERS */
+  .section-divider { height:1px; background:linear-gradient(90deg,transparent,var(--border),transparent); margin:0 2rem; }
+
+  /* FOOTER */
+  footer { text-align:center; padding:4rem 2rem; color:var(--muted); font-size:.85rem; border-top:1px solid var(--border); }
+  footer strong { color:var(--text); }
+
+  /* STEP COLORS */
+  .s1 .step-num { background:rgba(124,58,237,.2); border-color:var(--accent); color:#a78bfa; }
+  .s2 .step-num { background:rgba(6,182,212,.15); border-color:var(--accent2); color:var(--accent2); }
+  .s3 .step-num { background:rgba(245,158,11,.15); border-color:var(--accent3); color:var(--accent3); }
+  .s4 .step-num { background:rgba(236,72,153,.15); border-color:#ec4899; color:#f9a8d4; }
+  .s5 .step-num { background:rgba(34,197,94,.15); border-color:#22c55e; color:#86efac; }
+  .s6 .step-num { background:rgba(239,68,68,.15); border-color:#ef4444; color:#fca5a5; }
+  .s7 .step-num { background:rgba(168,85,247,.15); border-color:#a855f7; color:#d8b4fe; }
+
+  @media(max-width:600px){
+    .nav-links { display:none; }
+    .hero-stats { gap:1.5rem; }
+    .step { grid-template-columns:44px 1fr; gap:0 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<nav>
+  <div class="nav-logo">⚡ MicroChip 101</div>
+  <ul class="nav-links">
+    <li><a href="#intro">Intro</a></li>
+    <li><a href="#transistors">Transistors</a></li>
+    <li><a href="#logic">Logic Gates</a></li>
+    <li><a href="#manufacturing">Manufacturing</a></li>
+    <li><a href="#types">Types</a></li>
+    <li><a href="#everyday">Real World</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="chip-grid"></div>
+  <div class="hero-badge">📚 Student Guide · 7 Steps</div>
+  <h1>How Does a<br><span>Microchip</span> Work?</h1>
+  <p>From sand to supercomputers — a step-by-step journey into the tiny silicon chips that power our modern world.</p>
+  <a href="#intro" class="hero-btn">Start Learning ↓</a>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">7</div><div class="stat-label">Core Concepts</div></div>
+    <div class="stat"><div class="stat-num">~1nm</div><div class="stat-label">Modern Transistor Size</div></div>
+    <div class="stat"><div class="stat-num">50B+</div><div class="stat-label">Transistors per Chip</div></div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- MAIN CONTENT -->
+<div class="section-wrapper" id="intro">
+  <div class="section-label">The Full Breakdown</div>
+  <div class="section-title">7 Steps to Understanding Microchips</div>
+  <p class="section-sub">Follow each step in order — every concept builds on the last, taking you from the basics all the way to modern computing.</p>
+
+  <div class="steps">
+
+    <!-- STEP 1 -->
+    <div class="step s1">
+      <div class="step-num-col">
+        <div class="step-num">1</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-content">
+        <h3>What Is a Microchip?</h3>
+        <p>A microchip (also called an integrated circuit or IC) is an incredibly small electronic device built on a thin slice of <strong>silicon</strong> — a semiconductor material found in ordinary sand. It contains billions of tiny electronic components all etched onto a surface smaller than your fingernail.</p>
+        <div class="highlight-box"><strong>Analogy:</strong> Think of a microchip like a tiny city — streets are electrical pathways, buildings are transistors, and data is the traffic flowing through them at billions of times per second.</div>
+        <div class="tag-row">
+          <span class="tag">Silicon</span>
+          <span class="tag cyan">Integrated Circuit</span>
+          <span class="tag amber">Semiconductor</span>
+        </div>
+        <div class="takeaway"><div class="takeaway-label">🎯 Key Takeaway</div><p>A microchip is a miniaturized electronic circuit made of silicon that can process, store, and transmit information.</p></div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step s2">
+      <div class="step-num-col">
+        <div class="step-num">2</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-content">
+        <h3>A Brief History</h3>
+        <p>Understanding where chips came from helps you appreciate how extraordinary they are today.</p>
+        <div class="diagram">
+          <div class="diagram-title">Timeline of Key Milestones</div>
+          <div style="display:flex;flex-direction:column;gap:.6rem;font-size:.88rem;">
+            <div style="display:flex;gap:1rem;align-items:flex-start;"><span style="color:var(--accent2);font-weight:800;min-width:44px;">1947</span><span style="color:var(--muted)">Bell Labs invents the <strong style="color:var(--text)">transistor</strong> — the first switch that could amplify electrical signals</span></div>
+            <div style="display:flex;gap:1rem;align-items:flex-start;"><span style="color:var(--accent2);font-weight:800;min-width:44px;">1958</span><span style="color:var(--muted)">Jack Kilby at Texas Instruments creates the first <strong style="color:var(--text)">integrated circuit</strong></span></div>
+            <div style="display:flex;gap:1rem;align-items:flex-start;"><span style="color:var(--accent2);font-weight:800;min-width:44px;">1965</span><span style="color:var(--muted)"><strong style="color:var(--text)">Moore's Law</strong>: Gordon Moore predicts transistor count doubles every ~2 years</span></div>
+            <div style="display:flex;gap:1rem;align-items:flex-start;"><span style="color:var(--accent2);font-weight:800;min-width:44px;">1971</span><span style="color:var(--muted)">Intel releases the <strong style="color:var(--text)">4004</strong> — the world's first commercially available microprocessor</span></div>
+            <div style="display:flex;gap:1rem;align-items:flex-start;"><span style="color:var(--accent2);font-weight:800;min-width:44px;">2020s</span><span style="color:var(--muted)">Modern chips pack <strong style="color:var(--text)">50+ billion transistors</strong> with features just 2–3 nm wide</span></div>
+          </div>
+        </div>
+        <div class="takeaway"><div class="takeaway-label">🎯 Key Takeaway</div><p>In just 75 years, chips went from vacuum-tube-sized switches to billions of nano-scale transistors — one of the fastest technological evolutions in history.</p></div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step s3" id="transistors">
+      <div class="step-num-col">
+        <div class="step-num">3</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-content">
+        <h3>The Building Block: Transistors</h3>
+        <p>Every microchip is built from <strong>transistors</strong> — microscopic electronic switches that can be either ON (1) or OFF (0). They are the fundamental units of all digital computing.</p>
+        <p>A transistor has three terminals: the <strong>Source</strong> (input), the <strong>Gate</strong> (control), and the <strong>Drain</strong> (output). When voltage is applied to the Gate, it allows current to flow from Source to Drain — the switch is ON.</p>
+        <div class="diagram">
+          <div class="diagram-title">How a MOSFET Transistor Works</div>
+          <div class="transistor-viz">
+            <div class="t-source">SOURCE<br><small>Current In</small></div>
+            <div class="arrow">→</div>
+            <div class="t-gate">GATE<br><small>Control<br>Voltage</small></div>
+            <div class="arrow">→</div>
+            <div class="t-drain">DRAIN<br><small>Current Out</small></div>
+          </div>
+          <p style="text-align:center;font-size:.8rem;color:var(--muted);margin-top:.75rem;">When Gate voltage is HIGH → current flows → switch is <strong style="color:#86efac;">ON (1)</strong><br>When Gate voltage is LOW → no current → switch is <strong style="color:#fca5a5;">OFF (0)</strong></p>
+        </div>
+        <div class="highlight-box"><strong>Scale:</strong> Modern transistors are about 3nm wide — roughly 30,000 times thinner than a human hair. A single chip can contain over 50 billion of them.</div>
+        <div class="takeaway"><div class="takeaway-label">🎯 Key Takeaway</div><p>Transistors are microscopic ON/OFF switches. Billions of them switching billions of times per second = computation.</p></div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step s4" id="logic">
+      <div class="step-num-col">
+        <div class="step-num">4</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-content">
+        <h3>Logic Gates & Binary</h3>
+        <p>Groups of transistors are wired together to form <strong>logic gates</strong> — circuits that perform basic logical operations. All computing — from adding numbers to displaying images — ultimately boils down to combinations of these gates.</p>
+        <p>Everything in a computer is represented in <strong>binary</strong>: just 0s and 1s. Logic gates take binary inputs and produce binary outputs based on rules.</p>
+        <div class="diagram">
+          <div class="diagram-title">Core Logic Gates</div>
+          <div class="logic-grid">
+            <div class="logic-card"><div class="logic-name" style="color:#a78bfa;">AND</div><div class="logic-desc">Output is 1 only if BOTH inputs are 1</div><div class="logic-truth">1 AND 1 = 1<br>1 AND 0 = 0</div></div>
+            <div class="logic-card"><div class="logic-name" style="color:#67e8f9;">OR</div><div class="logic-desc">Output is 1 if AT LEAST ONE input is 1</div><div class="logic-truth">1 OR 0 = 1<br>0 OR 0 = 0</div></div>
+            <div class="logic-card"><div class="logic-name" style="color:#fcd34d;">NOT</div><div class="logic-desc">Inverts the input: 1 becomes 0, 0 becomes 1</div><div class="logic-truth">NOT 1 = 0<br>NOT 0 = 1</div></div>
+            <div class="logic-card"><div class="logic-name" style="color:#f9a8d4;">NAND</div><div class="logic-desc">NOT + AND. Output is 0 only if both inputs are 1</div><div class="logic-truth">1 NAND 1 = 0<br>1 NAND 0 = 1</div></div>
+            <div class="logic-card"><div class="logic-name" style="color:#86efac;">XOR</div><div class="logic-desc">Output is 1 if inputs are DIFFERENT</div><div class="logic-truth">1 XOR 0 = 1<br>1 XOR 1 = 0</div></div>
+          </div>
+        </div>
+        <div class="highlight-box"><strong>Fun fact:</strong> When you add 1 + 1 on a computer, it's really just a series of XOR and AND gates flipping billions of transistors in microseconds.</div>
+        <div class="takeaway"><div class="takeaway-label">🎯 Key Takeaway</div><p>Logic gates are the "vocabulary" of computing. Every calculation, every pixel on screen, every byte of data is ultimately produced by combinations of these simple gates.</p></div>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step s5" id="manufacturing">
+      <div class="step-num-col">
+        <div class="step-num">5</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-content">
+        <h3>The Manufacturing Process</h3>
+        <p>Making a microchip is one of the most complex manufacturing processes ever devised. It takes place in ultra-clean "cleanrooms" and involves hundreds of precise steps over several months.</p>
+        <div class="diagram">
+          <div class="diagram-title">Simplified Chip Manufacturing Steps</div>
+          <div class="process-steps">
+            <div class="p-step"><div class="p-step-num">1</div><div class="p-step-icon">🏜️</div><div class="p-step-name">Silicon Wafer</div><div class="p-step-desc">Pure silicon is grown into ingots, sliced into thin wafers</div></div>
+            <div class="p-step"><div class="p-step-num">2</div><div class="p-step-icon">🧪</div><div class="p-step-name">Oxidation</div><div class="p-step-desc">A thin oxide layer is grown on the wafer surface</div></div>
+            <div class="p-step"><div class="p-step-num">3</div><div class="p-step-icon">🔬</div><div class="p-step-name">Photolithography</div><div class="p-step-desc">UV/EUV light projects circuit patterns onto the wafer</div></div>
+            <div class="p-step"><div class="p-step-num">4</div><div class="p-step-icon">⚗️</div><div class="p-step-name">Etching</div><div class="p-step-desc">Chemicals remove unwanted material, leaving circuit paths</div></div>
+            <div class="p-step"><div class="p-step-num">5</div><div class="p-step-icon">⚡</div><div class="p-step-name">Doping</div><div class="p-step-desc">Impurities are added to control electrical conductivity</div></div>
+            <div class="p-step"><div class="p-step-num">6</div><div class="p-step-icon">🔗</div><div class="p-step-name">Metallization</div><div class="p-step-desc">Metal layers connect all components into circuits</div></div>
+            <div class="p-step"><div class="p-step-num">7</div><div class="p-step-icon">✅</div><div class="p-step-name">Testing & Packaging</div><div class="p-step-desc">Each chip is tested, cut, and packaged for use</div></div>
+          </div>
+        </div>
+        <div class="highlight-box"><strong>Photolithography</strong> is the most critical step. Modern EUV (Extreme Ultraviolet) machines — made only by ASML in the Netherlands and costing $150M+ each — print features just a few nanometers wide using light with a 13.5nm wavelength.</div>
+        <div class="takeaway"><div class="takeaway-label">🎯 Key Takeaway</div><p>Chips are manufactured through a photographic process — circuit blueprints are "printed" onto silicon using light, repeated hundreds of times in layers to build up billions of transistors.</p></div>
+      </div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="step s6" id="types">
+      <div class="step-num-col">
+        <div class="step-num">6</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-content">
+        <h3>Types of Microchips</h3>
+        <p>Not all chips are the same. Different chips are designed for different jobs, optimized for speed, efficiency, or specific tasks.</p>
+        <div class="chip-types">
+          <div class="chip-card"><div class="chip-icon">🧠</div><div class="chip-name">CPU</div><div class="chip-desc">Central Processing Unit — the "brain" that runs general programs and instructions</div></div>
+          <div class="chip-card"><div class="chip-icon">🎮</div><div class="chip-name">GPU</div><div class="chip-desc">Graphics Processing Unit — massively parallel chip for graphics and AI workloads</div></div>
+          <div class="chip-card"><div class="chip-icon">💾</div><div class="chip-name">RAM</div><div class="chip-desc">Memory chip for temporary fast storage of data being actively used</div></div>
+          <div class="chip-card"><div class="chip-icon">💿</div><div class="chip-name">Flash / NAND</div><div class="chip-desc">Permanent storage chip — used in SSDs, USB drives, and smartphones</div></div>
+          <div class="chip-card"><div class="chip-icon">📡</div><div class="chip-name">RF Chip</div><div class="chip-desc">Handles wireless communication — Wi-Fi, Bluetooth, 5G signals</div></div>
+          <div class="chip-card"><div class="chip-icon">🤖</div><div class="chip-name">NPU / AI Chip</div><div class="chip-desc">Neural Processing Unit — optimized for machine learning and AI tasks</div></div>
+        </div>
+        <div class="takeaway"><div class="takeaway-label">🎯 Key Takeaway</div><p>Different chips are tuned for different tasks. A CPU is great at flexibility; a GPU excels at parallel processing; an NPU is designed specifically for AI math operations.</p></div>
+      </div>
+    </div>
+
+    <!-- STEP 7 -->
+    <div class="step s7" id="everyday">
+      <div class="step-num-col">
+        <div class="step-num">7</div>
+      </div>
+      <div class="step-content">
+        <h3>Microchips in Everyday Life</h3>
+        <p>Microchips are everywhere — most people interact with dozens of them every single day without realizing it.</p>
+        <div class="diagram">
+          <div class="diagram-title">Where You'll Find Microchips</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.9rem;display:flex;gap:.75rem;align-items:flex-start;"><span style="font-size:1.4rem;">📱</span><div><strong style="font-size:.9rem;">Smartphones</strong><p style="font-size:.78rem;color:var(--muted);margin-top:.2rem;">CPU, GPU, modem, camera processor, fingerprint sensor — all chips</p></div></div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.9rem;display:flex;gap:.75rem;align-items:flex-start;"><span style="font-size:1.4rem;">🚗</span><div><strong style="font-size:.9rem;">Cars</strong><p style="font-size:.78rem;color:var(--muted);margin-top:.2rem;">Modern vehicles have 1,000+ chips managing engine, brakes, and safety</p></div></div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.9rem;display:flex;gap:.75rem;align-items:flex-start;"><span style="font-size:1.4rem;">🏥</span><div><strong style="font-size:.9rem;">Medical Devices</strong><p style="font-size:.78rem;color:var(--muted);margin-top:.2rem;">Pacemakers, MRI machines, glucose monitors all rely on microchips</p></div></div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.9rem;display:flex;gap:.75rem;align-items:flex-start;"><span style="font-size:1.4rem;">✈️</span><div><strong style="font-size:.9rem;">Aviation</strong><p style="font-size:.78rem;color:var(--muted);margin-top:.2rem;">Flight control computers, navigation, communication — all chip-powered</p></div></div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.9rem;display:flex;gap:.75rem;align-items:flex-start;"><span style="font-size:1.4rem;">🌐</span><div><strong style="font-size:.9rem;">The Internet</strong><p style="font-size:.78rem;color:var(--muted);margin-top:.2rem;">Data centers powering websites and cloud services run on millions of chips</p></div></div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.9rem;display:flex;gap:.75rem;align-items:flex-start;"><span style="font-size:1.4rem;">🏠</span><div><strong style="font-size:.9rem;">Smart Home</strong><p style="font-size:.78rem;color:var(--muted);margin-top:.2rem;">Thermostats, TVs, fridges, doorbells — all contain embedded chips</p></div></div>
+          </div>
+        </div>
+        <div class="takeaway"><div class="takeaway-label">🎯 Key Takeaway</div><p>Microchips are the invisible backbone of modern civilization. Shortages of chips (like in 2021) can halt car production, raise phone prices, and disrupt global supply chains — showing just how critical they are.</p></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- SUMMARY -->
+<div class="section-wrapper">
+  <div class="section-label">Quick Recap</div>
+  <div class="section-title">What You've Learned</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-top:1.5rem;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.25rem;">
+      <div style="color:#a78bfa;font-size:1.4rem;margin-bottom:.5rem;">⚡</div>
+      <strong>Chips = Silicon + Transistors</strong>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:.4rem;">Billions of ON/OFF switches on a sliver of purified sand</p>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.25rem;">
+      <div style="color:#67e8f9;font-size:1.4rem;margin-bottom:.5rem;">🔢</div>
+      <strong>Everything is 0s and 1s</strong>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:.4rem;">Logic gates combine binary signals to perform any calculation</p>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.25rem;">
+      <div style="color:#fcd34d;font-size:1.4rem;margin-bottom:.5rem;">🏭</div>
+      <strong>Manufacturing is Extreme Engineering</strong>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:.4rem;">Light prints nano-scale circuits onto silicon through photolithography</p>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.25rem;">
+      <div style="color:#86efac;font-size:1.4rem;margin-bottom:.5rem;">🌍</div>
+      <strong>Chips Run Everything</strong>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:.4rem;">From your phone to the power grid — modern life depends on microchips</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>Built for curious learners everywhere 🎓</p>
+  <p style="margin-top:.5rem;">Made with <strong>Claude</strong> · Microchip 101</p>
+</footer>
+
+<script>
+  window.addEventListener('scroll', () => {
+    const doc = document.documentElement;
+    const pct = (doc.scrollTop / (doc.scrollHeight - doc.clientHeight)) * 100;
+    document.getElementById('progress-bar').style.width = pct + '%';
+  });
+</script>
+</body>
+</html>
